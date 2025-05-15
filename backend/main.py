@@ -6,8 +6,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from ai import filter_personal_blogs
 from keywords import pinterest_titles
-import time
 service = Service(executable_path='chromedriver.exe')
 google_list_selector= "#rso"
 results_a_tag_selector = "#rso > div > div > div > div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a"
@@ -55,7 +55,10 @@ def frank():
         ]
         
         # Navigate through pages and collect results
+        count = 0
         for pagination_item in pagination_items:
+            if count >= 3:
+                break
             print(f"Navigating to next page:🫡")
             driver.get(pagination_item)
             
@@ -64,9 +67,9 @@ def frank():
             
             # Collect results from this page
             collect_results(driver, results_hrefs)
-            break
-        
-        return jsonify({"results": results_hrefs})
+            count += 1
+        filtered_hrefs = filter_personal_blogs(results_hrefs)
+        return jsonify({"results": filtered_hrefs})
     
     except Exception as e:
         print(f"An error occurred: {str(e)}")
