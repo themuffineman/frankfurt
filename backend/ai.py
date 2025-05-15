@@ -26,7 +26,7 @@ def filter_personal_blogs(input_list: list[str]) -> list[str]:
     response = client.responses.parse(
         model="gpt-4.1-nano",
         input=[
-            {"role": "system", "content": """Filter this list to include only URLs that are likely personal blogs maintained by individuals. Remove any URLs for corporate blogs, company websites, software documentation sites, or non-personal content platforms. I'm specifically looking for authentic, personal blogs written by real individuals, not organizational or commercial content."""},
+            {"role": "system", "content": """Filter this list of URLs to include only URLs that are likely personal blogs maintained by actaul independent individuals. Remove any URLs for corporate blogs, company websites, software documentation sites, or non-personal content platforms. I'm specifically looking for authentic, personal blogs written by real individuals, not organizational, software tools, agencies  or commercial content."""},
             {
                 "role": "user",
                 "content": f"{input_list}",
