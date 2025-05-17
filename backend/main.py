@@ -1,4 +1,4 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -6,10 +6,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from markdownify import markdownify as md
-from collections import deque
-from pydantic import BaseModel
-from dotenv import load_dotenv
+from selenium_stealth import stealth
+from seleniumbase import Driver
+
 import os
 from ai import filter_personal_blogs, filter_irrelavant_urls, extract_blog_data_recursively, extract_blog_content_and_links, send_results_to_crm
 from keywords import pinterest_titles
@@ -21,8 +20,13 @@ results_a_tag_selector = "#rso > div > div > div > div.kb0PBd.A9Y9g.jGGQ5e > div
 pagination_selector = "#botstuff > div > div:nth-child(3) > table > tbody > tr"
 pagination_item_selector = "#botstuff > div > div:nth-child(3) > table > tbody > tr > td > a"
 app = Flask(__name__)
-@app.route('/frank', methods=['GET'])
+@app.route('/frank', methods=['POST'])
 def frank():
+    keyword = request.json.get('keyword')
+    if not keyword:
+        return jsonify({"error": "Keyword is required"}), 400
+    else:
+        print(f"Keyword received: {keyword}")
     driver = None
     try:
         # Initialize driver with options
@@ -30,11 +34,15 @@ def frank():
         options.add_argument('--ignore-certificate-errors')
         options.add_argument('--allow-insecure-localhost')
         options.add_argument("--log-level=3")  # Suppresses INFO and WARNING logs
+        options.add_argument("start-maximized")
+        options.add_argument('user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/117.0.0.0 Safari/537.36')
+        options.add_argument("--headless=new")
+        # options.add_argument("--disable-blink-features=AutomationControlled")
         options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Hides DevTools logs
-        driver = webdriver.Chrome(service=service, options=options)
+        # driver = webdriver.Chrome(service=service, options=options)
+        driver = Driver(uc=True, headless=True)
+     
         
-        # Get search keyword
-        keyword = pinterest_titles.popleft()
         
         # Perform initial search
         driver.get('https://www.google.com/')
@@ -66,8 +74,8 @@ def frank():
         # Navigate through pages and collect results
         count = 0
         for pagination_item in pagination_items:
-            if count >= 3:
-                break
+            # if count >= 3:
+            #     break
             print(f"Navigating to next page:🫡")
             driver.get(pagination_item)
             
@@ -104,7 +112,7 @@ def frank():
         if not filtered_hrefs and not blog_posts:
             return jsonify({"error": "No results or posts found"}), 404
         print("Returning results...")
-        return jsonify({"results": filtered_hrefs, "posts": blog_posts}),200
+        return jsonify({"results": filtered_hrefs, "posts": blog_posts}), 200
     
     except Exception as e:
         print(f"An error occurred: {str(e)}")
