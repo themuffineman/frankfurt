@@ -11,10 +11,12 @@ from seleniumbase import Driver
 
 import os
 from ai import filter_personal_blogs, filter_irrelavant_urls, extract_blog_data_recursively, extract_blog_content_and_links, send_results_to_crm
-from keywords import pinterest_titles
-from urllib.parse import urlparse
-import re
-service = Service(executable_path='chromedriver.exe')
+import os
+
+load_dotenv()
+AUTH = os.getenv('AUTH')
+SBR_WEBDRIVER = os.getenv('SBR_WEBDRIVER')
+# service = Service(executable_path='chromedriver.exe')
 google_list_selector= "#rso"
 results_a_tag_selector = "#rso > div > div > div > div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a"
 pagination_selector = "#botstuff > div > div:nth-child(3) > table > tbody > tr"
@@ -79,10 +81,23 @@ def frank():
             print(f"Navigating to next page:🫡")
             driver.get(pagination_item)
             
-            # Wait for results to load
-            wait_for_elements(driver, [(By.CSS_SELECTOR, google_list_selector)], timeout=30)
+            # Perform initial search
+            driver.get('https://www.google.com/')
+            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.CLASS_NAME, "gLFyf")))
+            input_element = driver.find_element(By.CLASS_NAME, "gLFyf")
+            input_element.clear()
+            input_element.send_keys(keyword + Keys.ENTER)
             
-            # Collect results from this page
+            # Wait for search results to load
+            wait_for_elements(driver, [
+                (By.CSS_SELECTOR, google_list_selector),
+                (By.CSS_SELECTOR, pagination_selector)
+            ], timeout=30)
+            
+            print("Found the list of results and pagination")
+            
+            # Get initial results
+            results_hrefs = []
             collect_results(driver, results_hrefs)
             count += 1
         filtered_hrefs = filter_personal_blogs(results_hrefs)
