@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -6,8 +6,15 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from ai import filter_personal_blogs
+from markdownify import markdownify as md
+from collections import deque
+from pydantic import BaseModel
+from dotenv import load_dotenv
+import os
+from ai import filter_personal_blogs, filter_irrelavant_urls, extract_blog_data_recursively, extract_blog_content_and_links
 from keywords import pinterest_titles
+from urllib.parse import urlparse
+import re
 service = Service(executable_path='chromedriver.exe')
 google_list_selector= "#rso"
 results_a_tag_selector = "#rso > div > div > div > div.kb0PBd.A9Y9g.jGGQ5e > div > div > span > a"
@@ -22,6 +29,8 @@ def frank():
         options = Options()
         options.add_argument('--ignore-certificate-errors')
         options.add_argument('--allow-insecure-localhost')
+        options.add_argument("--log-level=3")  # Suppresses INFO and WARNING logs
+        options.add_experimental_option("excludeSwitches", ["enable-logging"])  # Hides DevTools logs
         driver = webdriver.Chrome(service=service, options=options)
         
         # Get search keyword
@@ -69,7 +78,22 @@ def frank():
             collect_results(driver, results_hrefs)
             count += 1
         filtered_hrefs = filter_personal_blogs(results_hrefs)
-        return jsonify({"results": filtered_hrefs})
+        blog_posts = []
+        for href in filtered_hrefs:
+           md_content, links = extract_blog_content_and_links(driver, href)
+           if len(links) == 0:
+            print(f"No links found in {href}")
+            continue
+           print(f"Links found: {len(links)} {links[0]}")
+           relevant_urls = filter_irrelavant_urls(links)
+           if len(relevant_urls) == 0:
+            print(f"No relevant URLs found in {href}")
+            continue
+           extracted_data = extract_blog_data_recursively(driver, relevant_urls)
+           blog_posts.append({
+            "content": extracted_data,
+           })
+        return jsonify({"results": filtered_hrefs,"posts": blog_posts})
     
     except Exception as e:
         print(f"An error occurred: {str(e)}")
@@ -93,7 +117,7 @@ def wait_for_elements(driver, element_locators, timeout=30):
         WebDriverWait(driver, timeout).until(
             EC.presence_of_element_located((by, selector))
         )
-
+    
 
 def collect_results(driver, results_hrefs):
     """
@@ -119,7 +143,9 @@ def collect_results(driver, results_hrefs):
         href = result.get_attribute("href")
         if href:
             results_hrefs.append(href)
-        
+
+
+    
 
 
 if __name__ == '__main__':
