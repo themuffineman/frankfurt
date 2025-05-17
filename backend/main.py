@@ -11,7 +11,7 @@ from collections import deque
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
-from ai import filter_personal_blogs, filter_irrelavant_urls, extract_blog_data_recursively, extract_blog_content_and_links
+from ai import filter_personal_blogs, filter_irrelavant_urls, extract_blog_data_recursively, extract_blog_content_and_links, send_results_to_crm
 from keywords import pinterest_titles
 from urllib.parse import urlparse
 import re
@@ -90,6 +90,8 @@ def frank():
             print(f"No relevant URLs found in {href}")
             continue
            extracted_data = extract_blog_data_recursively(driver, relevant_urls)
+           extracted_data['website'] = href
+           send_results_to_crm(extracted_data)
            blog_posts.append({
             extracted_data,
            })

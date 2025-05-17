@@ -9,6 +9,8 @@ from markdownify import markdownify as md
 from urllib.parse import urlparse
 from collections import deque
 import re
+import requests
+
 
 
 import os
@@ -260,5 +262,23 @@ def extract_markdown_from_html(html_content):
     markdown_content = re.sub(r'<a[^>]*href=["\'].*?\.(?:jpg|jpeg|png|gif|bmp|svg)["\'][^>]*>.*?</a>', '', markdown_content, flags=re.DOTALL | re.IGNORECASE)
     return md(markdown_content)
 
+def send_results_to_crm(body):
+    """
+    Send results to CRM system
+    Args:
+        body: The data to be sent
+    """
+    url = os.getenv("CRM_URL")
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.getenv("CRM_TOKEN")}"  # Replace with your API token if required
+    }
 
+    try:
+        response = requests.post(url, json=body, headers=headers)
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        print(f"Results successfully sent to CRM: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send results to CRM: {e}")
+    pass
 
