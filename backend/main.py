@@ -84,16 +84,20 @@ def frank():
            if len(links) == 0:
             print(f"No links found in {href}")
             continue
-           print(f"Links found: {len(links)} {links[0]}")
+           print(f"Links found: {len(links)}, here's one: {links[0]}")
            relevant_urls = filter_irrelavant_urls(links)
            if len(relevant_urls) == 0:
             print(f"No relevant URLs found in {href}")
             continue
            extracted_data = extract_blog_data_recursively(driver, relevant_urls)
            blog_posts.append({
-            "content": extracted_data,
+            extracted_data,
            })
-        return jsonify({"results": filtered_hrefs,"posts": blog_posts})
+        #    break
+        if not filtered_hrefs and not blog_posts:
+            return jsonify({"error": "No results or posts found"}), 404
+        print("Returning results...")
+        return jsonify({"results": filtered_hrefs, "posts": blog_posts}),200
     
     except Exception as e:
         print(f"An error occurred: {str(e)}")

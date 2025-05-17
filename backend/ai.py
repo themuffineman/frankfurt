@@ -74,7 +74,7 @@ def filter_irrelavant_urls(input_list: list[str]) -> list[str]:
         4. The owners's personal information
         5. Any course or products they are selling
     """
-    print("original irrelavent: ", len(input_list))
+    print("Before removing irelavant urls: ", len(input_list))
     response = client.responses.parse(
         model=ai_model,
         input=[
@@ -85,7 +85,8 @@ def filter_irrelavant_urls(input_list: list[str]) -> list[str]:
                 - The owners's personal information or bio inorder to persoanlize outreach
                 - Any course or products they are selling
              Any URLs that are not likely contain this information are removed from the list.
-             """},
+             """
+            },
             {
                 "role": "user",
                 "content": f"{input_list}",
@@ -93,7 +94,7 @@ def filter_irrelavant_urls(input_list: list[str]) -> list[str]:
         ],
         text_format=FilterSchema,
     )
-    print("after removing irrelavant: ", len(response.output_parsed.data))
+    print("After removing irrelavant urls: ", len(response.output_parsed.data))
     return response.output_parsed.data
 
 def extract_blog_data_recursively(driver,links):
@@ -114,17 +115,19 @@ def extract_blog_data_recursively(driver,links):
     }
     while len(init_links) > 0:
         best_url = best_url_to_follow(init_links, extracted_content)
+        print("Best URL to follow: ", best_url)
         if best_url in visited:
             init_links.remove(best_url)
             continue
         visited.add(best_url)
-        init_links.remove(best_url)
+        print("Links available to scrape: ", len(init_links))
         driver.get(best_url)
         page_content = extract_markdown_from_html(driver.page_source)
         extracted_content = scrape_blog_data(extracted_content, page_content)
+        print("Extracted Content: ", extracted_content)
         if all(value is not None for value in extracted_content.values()):
+            print("All required data extracted.")
             break
-        print("Extracted data: ", extracted_content)
     return extracted_content
         
 
@@ -143,10 +146,10 @@ def scrape_blog_data(extracted_content, page_content):
         """
         Represents the schema for the LLM response containing required data extracted from the page.
         """
-        name:str
-        email:str
-        bio:str
-        course_product:str
+        name:str|None
+        email:str|None
+        bio:str|None
+        course_product:str|None
    
     is_data_on_page_prompt = f"""
         You are a data extraction bot. Your job is to extract data from the given page.
@@ -158,7 +161,7 @@ def scrape_blog_data(extracted_content, page_content):
         4. The course or products they are selling
         If you find any of this data on the page, please extract it and return it in the following format:
         {extracted_content}
-        If you do not find any of this data on the page, please return None for each field that you dont find.
+        If you do not find a certain key data on the page, please return None for that specific field that you dont find.
         
     """
     # Extract data from the page using LLM
@@ -173,9 +176,8 @@ def scrape_blog_data(extracted_content, page_content):
         ],
         text_format=PageDataSchema,
     )
-    print("Response: ", response.output_parsed)
     response_content = response.output_parsed
-    extracted_content = update_none_values(extracted_content, response_content)
+    extracted_content = update_none_values(extracted_content, response_content.dict())
     return extracted_content
 
     
@@ -212,7 +214,6 @@ def best_url_to_follow( links, extracted_content):
     )
     # Extract the URL to follow from the response
     url_to_follow = response.output_parsed.url
-    print("URL to follow: ", url_to_follow)
     return url_to_follow
 
 def extract_blog_content_and_links(driver, href):
