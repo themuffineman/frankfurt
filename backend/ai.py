@@ -124,6 +124,7 @@ def extract_blog_data_recursively(driver,links):
                 continue
             visited.add(best_url)
             print("Links available to scrape: ", len(init_links))
+            driver.set_page_load_timeout(60)
             driver.get(best_url)
             page_content = extract_markdown_from_html(driver.page_source)
             extracted_content = scrape_blog_data(extracted_content, page_content)
@@ -232,7 +233,11 @@ def extract_blog_content_and_links(driver, href):
         # Extract the root domain from the href
     parsed_url = urlparse(href)
     root_domain = f"{parsed_url.scheme}://{parsed_url.netloc}"
-    driver.get(root_domain)
+    try:
+        driver.set_page_load_timeout(60)
+        driver.get(root_domain)
+    except Exception as e:
+        raise Exception(f"Page took too long to load: {e}")
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.TAG_NAME, "body"))
     )
