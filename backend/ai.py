@@ -116,20 +116,23 @@ def extract_blog_data_recursively(driver,links):
         "course_product": None,
     }
     while len(init_links) > 0:
-        best_url = best_url_to_follow(init_links, extracted_content)
-        print("Best URL to follow: ", best_url)
-        if best_url in visited:
-            init_links.remove(best_url)
-            continue
-        visited.add(best_url)
-        print("Links available to scrape: ", len(init_links))
-        driver.get(best_url)
-        page_content = extract_markdown_from_html(driver.page_source)
-        extracted_content = scrape_blog_data(extracted_content, page_content)
-        print("Extracted Content: ", extracted_content)
-        if all(value is not None for value in extracted_content.values()):
-            print("All required data extracted.")
-            break
+        try:
+            best_url = best_url_to_follow(init_links, extracted_content)
+            print("Best URL to follow: ", best_url)
+            if best_url in visited:
+                init_links.remove(best_url)
+                continue
+            visited.add(best_url)
+            print("Links available to scrape: ", len(init_links))
+            driver.get(best_url)
+            page_content = extract_markdown_from_html(driver.page_source)
+            extracted_content = scrape_blog_data(extracted_content, page_content)
+            print("Extracted Content: ", extracted_content)
+            if all(value is not None for value in extracted_content.values()):
+                print("All required data extracted.")
+                break
+        except Exception as e:
+            print(f"An error occurred: {e}")
     return extracted_content
         
 

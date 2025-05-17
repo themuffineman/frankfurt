@@ -80,22 +80,27 @@ def frank():
         filtered_hrefs = filter_personal_blogs(results_hrefs)
         blog_posts = []
         for href in filtered_hrefs:
-           md_content, links = extract_blog_content_and_links(driver, href)
-           if len(links) == 0:
-            print(f"No links found in {href}")
-            continue
-           print(f"Links found: {len(links)}, here's one: {links[0]}")
-           relevant_urls = filter_irrelavant_urls(links)
-           if len(relevant_urls) == 0:
-            print(f"No relevant URLs found in {href}")
-            continue
-           extracted_data = extract_blog_data_recursively(driver, relevant_urls)
-           extracted_data['website'] = href
-           send_results_to_crm(extracted_data)
-           blog_posts.append({
-            extracted_data,
-           })
-        #    break
+           try:
+               md_content, links = extract_blog_content_and_links(driver, href)
+               if len(links) == 0:
+                   print(f"No links found in {href}")
+                   continue
+               print(f"Links found: {len(links)}, here's one: {links[0]}")
+               relevant_urls = filter_irrelavant_urls(links)
+               if len(relevant_urls) == 0:
+                   print(f"No relevant URLs found in {href}")
+                   continue
+               extracted_data = extract_blog_data_recursively(driver, relevant_urls)
+               extracted_data['website'] = href
+               if not extracted_data.get('email'):
+                   print(f"No email found for {href}, skipping CRM submission.")
+                   continue
+               send_results_to_crm(extracted_data)
+               blog_posts.append(
+                   extracted_data,
+               )
+           except Exception as e:
+               print(f"An error occurred while processing {href}: {str(e)}")
         if not filtered_hrefs and not blog_posts:
             return jsonify({"error": "No results or posts found"}), 404
         print("Returning results...")
