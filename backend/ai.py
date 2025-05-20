@@ -279,7 +279,7 @@ def send_results_to_crm(body):
     url = os.getenv("CRM_URL")
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {os.getenv("CRM_TOKEN")}"  # Replace with your API token if required
+        "Authorization": f"Bearer {os.getenv('CRM_TOKEN')}"  # Replace with your API token if required
     }
 
     try:
